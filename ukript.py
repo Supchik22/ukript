@@ -27,8 +27,29 @@ def clean_variable_name(name):
 
 def check_condition(condition):
     if len(condition) != 1:
-        if condition[1] == "дорівнює":
+        if condition[1] == "не":
+            if variables_memory[find_closest_variable(condition[0], variables_memory)] != " ".join(condition[2:]):
+                debug_print("умова істина")
+                return True
+            else:
+                debug_print("умова не істина")
+                return False
+        elif condition[1] == "дорівнює":
             if variables_memory[find_closest_variable(condition[0], variables_memory)] == " ".join(condition[2:]):
+                debug_print("умова істина")
+                return True
+            else:
+                debug_print("умова не істина")
+                return False
+        elif condition[1] == "більше":
+            if variables_memory[find_closest_variable(condition[0], variables_memory)] > ukr_numbers.parse_number(" ".join(condition[2:])):
+                debug_print("умова істина")
+                return True
+            else:
+                debug_print("умова не істина")
+                return False
+        elif condition[1] == "менше":
+            if variables_memory[find_closest_variable(condition[0], variables_memory)] < ukr_numbers.parse_number(" ".join(condition[2:])):
                 debug_print("умова істина")
                 return True
             else:
