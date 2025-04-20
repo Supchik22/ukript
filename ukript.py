@@ -1,7 +1,50 @@
-import ukr_numbers  # Поки не використовується
+import ukr_numbers 
 import sys
+import time
 
 debug = False  # Увімкнути/вимкнути відладочний режим
+
+# Словник ключових слів
+keywords = {
+    "pet_names": ["петрик", "петя"],
+    "actions": {
+        "create": "зробив",
+        "add": "додав",
+        "subtract": "відняв",
+        "multiply": "помножив",
+        "divide": "поділив",
+        "read": "прочитав",
+        "ask": ["спитав", "пита"],
+        "say": ["сказав", "каже"],
+        "sleep": "заснув",
+        "remember": "вспомнив",
+        "assign": "переписав"
+    },
+    "prepositions": {
+        "to": ["до", "в"],
+        "from": "з",
+        "on": "на"
+    },
+    "condition_start": "якщо",
+    "condition_end": "ну і все",
+    "chapter_marker": "речення:",
+    "repeat": "повторити",
+    "condition_words": {
+        "not": "не",
+        "equals": "дорівнює",
+        "greater": "більше",
+        "less": "менше"
+    },
+    "boolean": {
+        "yes": "так",
+        "no": "ні"
+    },
+    "time_units": {
+        "seconds": ["секунд", "секунди", "секунда", "секунду"],
+        "minutes": ["хвилин", "хвилину", "хвилиночок"],
+        "hours": ["годин", "години", "годину"]
+    }
+}
 
 chapters = {}
 variables_memory = {}
@@ -27,28 +70,28 @@ def clean_variable_name(name):
 
 def check_condition(condition):
     if len(condition) != 1:
-        if condition[1] == "не":
+        if condition[1] == keywords["condition_words"]["not"]:
             if variables_memory[find_closest_variable(condition[0], variables_memory)] != " ".join(condition[2:]):
                 debug_print("умова істина")
                 return True
             else:
                 debug_print("умова не істина")
                 return False
-        elif condition[1] == "дорівнює":
+        elif condition[1] == keywords["condition_words"]["equals"]:
             if variables_memory[find_closest_variable(condition[0], variables_memory)] == " ".join(condition[2:]):
                 debug_print("умова істина")
                 return True
             else:
                 debug_print("умова не істина")
                 return False
-        elif condition[1] == "більше":
+        elif condition[1] == keywords["condition_words"]["greater"]:
             if variables_memory[find_closest_variable(condition[0], variables_memory)] > ukr_numbers.parse_number(" ".join(condition[2:])):
                 debug_print("умова істина")
                 return True
             else:
                 debug_print("умова не істина")
                 return False
-        elif condition[1] == "менше":
+        elif condition[1] == keywords["condition_words"]["less"]:
             if variables_memory[find_closest_variable(condition[0], variables_memory)] < ukr_numbers.parse_number(" ".join(condition[2:])):
                 debug_print("умова істина")
                 return True
@@ -58,11 +101,25 @@ def check_condition(condition):
     else:
         cl_var = find_closest_variable(" ".join(condition).lower(), variables_memory)
         if cl_var is not None:
-            if variables_memory[cl_var] == "ні":
+            if variables_memory[cl_var] == keywords["boolean"]["no"]:
                 return False
-            if variables_memory[cl_var] == "так":
+            if variables_memory[cl_var] == keywords["boolean"]["yes"]:
                 return True
 
+def handle_sleep(words):
+    time_unit = words[-1].lower()
+    time_value = ukr_numbers.parse_number(" ".join(words[3:-1]))
+    
+    if time_unit in keywords["time_units"]["seconds"]:
+        time.sleep(time_value)
+    elif time_unit in keywords["time_units"]["minutes"]:
+        time.sleep(time_value * 60)
+    elif time_unit in keywords["time_units"]["hours"]:
+        time.sleep(time_value * 3600)
+
+def handle_assign(words, variables_memory):
+    #variables_memory[words[2].lower()] = variables_memory[find_closest_variable(" ".join(words[3:]), variables_memory)]
+    pass
 def process_line(line, variables_memory, last_variable):
     line = line.strip()
     if not line:
@@ -77,51 +134,55 @@ def process_line(line, variables_memory, last_variable):
     global layer
     global line_index
 
-    if line.startswith("якщо"):
+    if line.startswith(keywords["condition_start"]):
         if not check_condition(words[1:-1]):
             debug_print("додаєм шар")
             layer += 1
-    elif line.startswith("ну і все"):
+    elif line.startswith(keywords["condition_end"]):
         if layer != 0:
             layer -= 1
 
     if layer != 0:
         return last_variable
 
-    if words[0].lower() in ["петрик", "петя"]:
+    if words[0].lower() in keywords["pet_names"]:
         action = words[1].lower()
-        if action == "зробив":
-            last_variable = handle_create_variable(words, variables_memory)
-        elif action == "додав":
-            handle_addition(words, variables_memory, last_variable)
-        elif action == "відняв":
-            handle_subtraction(words, variables_memory, last_variable)
-        elif action == "помножив":
-            handle_mult(words, variables_memory, last_variable)
-        elif action == "поділив":
-            handle_div(words, variables_memory, last_variable)
-        elif action == "прочитав":
-            handle_read_variable(variables_memory, last_variable)
-        elif action in ["спитав", "пита"]:
-            handle_input_variable(words, variables_memory)
-        elif action in ["сказав", "каже"]:
-            print(" ".join(words[2:]))
-        elif action == "вспомнив":
-            var_name = " ".join(words[2:])
-            last_variable = find_closest_variable(var_name, variables_memory)
 
-    elif words[0].lower() == "речення:":
+        action_map = {
+            keywords["actions"]["create"]: lambda: handle_create_variable(words, variables_memory),
+            keywords["actions"]["add"]: lambda: handle_addition(words, variables_memory, last_variable),
+            keywords["actions"]["subtract"]: lambda: handle_subtraction(words, variables_memory, last_variable),
+            keywords["actions"]["multiply"]: lambda: handle_mult(words, variables_memory, last_variable),
+            keywords["actions"]["divide"]: lambda: handle_div(words, variables_memory, last_variable),
+            keywords["actions"]["read"]: lambda: handle_read_variable(variables_memory, last_variable),
+            keywords["actions"]["ask"][0]: lambda: handle_input_variable(words, variables_memory),
+            keywords["actions"]["ask"][1]: lambda: handle_input_variable(words, variables_memory),
+            keywords["actions"]["say"][0]: lambda: print(" ".join(words[2:])),
+            keywords["actions"]["sleep"]: lambda: handle_sleep(words),
+            keywords["actions"]["say"][1]: lambda: print(" ".join(words[2:])),
+            keywords["actions"]["remember"]: lambda: find_closest_variable(" ".join(words[2:]), variables_memory),
+            keywords["actions"]["assign"]: lambda: handle_assign(words, variables_memory),
+        }
+
+        if action in action_map:
+            result = action_map[action]()
+            if action == keywords["actions"]["create"]:
+                last_variable = result
+            elif action == keywords["actions"]["remember"]:
+                last_variable = result
+
+    elif words[0].lower() == keywords["chapter_marker"]:
         chapter_name = " ".join(words[1:]).lower()
         if chapter_name not in chapters:
             chapters[chapter_name] = line_index
-    elif words[0].lower() == "повторити":
+    elif words[0].lower() == keywords["repeat"]:
         debug_print(chapters)
         line_index = chapters[" ".join(words[1:]).lower()]
 
     return last_variable
 
 def handle_mult(words, variables_memory, last_variable):
-    if words[-2].lower().startswith("на"):
+    if words[-2].lower() in keywords["prepositions"]["on"]:
         var_name = last_variable
         resolved_var = find_closest_variable(var_name, variables_memory)
         if resolved_var is None:
@@ -131,8 +192,9 @@ def handle_mult(words, variables_memory, last_variable):
             var_name_to_mult = " ".join(words[2:-2])
             num = variables_memory[find_closest_variable(var_name_to_mult, variables_memory)]
         variables_memory[resolved_var] *= num
+
 def handle_div(words, variables_memory, last_variable):
-    if words[-2].lower().startswith("на"):
+    if words[-2].lower() in keywords["prepositions"]["on"]:
         var_name = last_variable
         resolved_var = find_closest_variable(var_name, variables_memory)
         if resolved_var is None:
@@ -143,7 +205,6 @@ def handle_div(words, variables_memory, last_variable):
             var_name_to_div = " ".join(words[3:])
             num = variables_memory[find_closest_variable(var_name_to_div, variables_memory)]
         variables_memory[resolved_var] /= num
-    # приклад "петя поділив на два"
 
 def handle_create_variable(words, variables_memory):
     var_name = clean_variable_name(words[2])
@@ -151,7 +212,7 @@ def handle_create_variable(words, variables_memory):
     return var_name
 
 def handle_addition(words, variables_memory, last_variable):
-    if words[-2].lower().startswith("до"):
+    if words[-2].lower() in keywords["prepositions"]["to"]:
         var_name = last_variable
         resolved_var = find_closest_variable(var_name, variables_memory)
         if resolved_var is None:
@@ -163,7 +224,7 @@ def handle_addition(words, variables_memory, last_variable):
         variables_memory[resolved_var] += num
 
 def handle_subtraction(words, variables_memory, last_variable):
-    if words[-2].lower().startswith("з"):
+    if words[-2].lower() in keywords["prepositions"]["from"]:
         var_name = last_variable
         resolved_var = find_closest_variable(var_name, variables_memory)
         if resolved_var is None:
