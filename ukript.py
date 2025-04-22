@@ -1,6 +1,9 @@
 import ukr_numbers 
 import sys
 import time
+import turtle
+
+t = None
 
 debug = False  # Увімкнути/вимкнути відладочний режим
 
@@ -18,7 +21,18 @@ keywords = {
         "say": ["сказав", "каже"],
         "sleep": "заснув",
         "remember": "вспомнив",
-        "assign": "переписав"
+        "draw": "малює",
+        "down": "опустив",
+        "forward": "вперед",
+        "backward": "назад",
+        "left": "вліво",
+        "right": "вправо",
+        "end_draw": "закінчив",
+        "up": "підняв",
+        "assign": "переписав",
+        "center": "центр",
+        "speed": "швидкість",
+        
     },
     "prepositions": {
         "to": ["до", "в"],
@@ -116,7 +130,63 @@ def handle_sleep(words):
         time.sleep(time_value * 60)
     elif time_unit in keywords["time_units"]["hours"]:
         time.sleep(time_value * 3600)
+def check_turtle_exists():
+    global t
+    if t is None:
+        t = turtle.Turtle()
+        print('нова черепашка')
+    else: print('черепашка вже існує')
+    
+def parse_number(words):
+    result = ukr_numbers.parse_number(" ".join(words))
 
+    if result is None:
+        result = variables_memory[find_closest_variable(" ".join(words), variables_memory)]
+    return result
+
+
+def handle_draw(words):
+    global t
+    words = words[2:]
+    print('хтось малює: ', words[0].lower())
+    if words[0].lower() == keywords["actions"]["down"]:
+        check_turtle_exists()
+        t.pendown()
+    elif words[0].lower() == keywords["actions"]["up"]:
+        check_turtle_exists()
+        t.penup()
+    elif words[0].lower() == keywords["actions"]["forward"]:
+        check_turtle_exists()
+        distance = parse_number(words[2:-1])
+        t.forward(distance)
+        
+        # Приклад виклику функції
+        # Петрик малює вперед сто
+    elif words[0].lower() == keywords["actions"]["backward"]:
+        check_turtle_exists()
+        distance = parse_number(words[2:-1])
+        t.backward(distance)
+    elif words[0].lower() == keywords["actions"]["left"]:
+        check_turtle_exists()
+        angle = parse_number(words[2:-1])
+        t.left(angle)
+    elif words[0].lower() == keywords["actions"]["right"]:
+        check_turtle_exists()
+        angle = parse_number(words[2:-1])
+        t.right(angle)
+    elif words[0].lower() == keywords["actions"]["end_draw"]:
+        if t is not None:
+            t.screen.mainloop()
+    elif words[0].lower() == keywords["prepositions"]["to"][0]:
+        print("додому!?")
+        if words[1].lower() == keywords["actions"]["center"]:
+            check_turtle_exists()
+            print("додому!")
+            t.home()
+    elif words[0].lower() == keywords["actions"]["speed"]:
+        check_turtle_exists()
+        speed = parse_number(words[2:])
+        t.speed(speed)
 def handle_assign(words, variables_memory):
     #variables_memory[words[2].lower()] = variables_memory[find_closest_variable(" ".join(words[3:]), variables_memory)]
     pass
@@ -159,6 +229,7 @@ def process_line(line, variables_memory, last_variable):
             keywords["actions"]["ask"][1]: lambda: handle_input_variable(words, variables_memory),
             keywords["actions"]["say"][0]: lambda: print(" ".join(words[2:])),
             keywords["actions"]["sleep"]: lambda: handle_sleep(words),
+            keywords["actions"]["draw"]: lambda: handle_draw(words),
             keywords["actions"]["say"][1]: lambda: print(" ".join(words[2:])),
             keywords["actions"]["remember"]: lambda: find_closest_variable(" ".join(words[2:]), variables_memory),
             keywords["actions"]["assign"]: lambda: handle_assign(words, variables_memory),
