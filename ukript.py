@@ -2,19 +2,27 @@ import ukr_numbers
 import sys
 import time
 import turtle
-
+import math
+import random
 t = None
 
 debug = False  # Увімкнути/вимкнути відладочний режим
 
 # Словник ключових слів
-keywords = {
-    "pet_names": ["петрик", "петя"],
+
+keywords_default = {
+    "pet_names": ["петрик", "петя","черепаха"],
     "actions": {
         "create": "зробив",
         "add": "додав",
         "subtract": "відняв",
         "multiply": "помножив",
+        "cos": "косинус",
+        "sin": "синус",
+        "tan": "тангенс",
+        
+
+
         "divide": "поділив",
         "read": "прочитав",
         "ask": ["спитав", "пита"],
@@ -59,6 +67,62 @@ keywords = {
         "hours": ["годин", "години", "годину"]
     }
 }
+keywords_mcpetya = {
+    "pet_names": ["мспетрик", "мспетя", "черепаха","тіп"],
+    "actions": {
+        "create": "напотужнічав",
+        "add": "накидав",
+        "subtract": "змінусив",
+        "multiply": "захардкорив",
+        "cos": "косанув",
+        "sin": "сінанув",
+        "tan": "танканув",
+        "divide": "розшарив",
+        "read": "зачитав",
+        "ask": ["запитав", "спитав"],
+        "say": ["влепив", "відкинув"],
+        "sleep": "зашкварився",
+        "remember": "згадав",
+        "draw": "намалював",
+        "down": "опустив",
+        "forward": "погнав",
+        "backward": "відкотівся",
+        "left": "наліво",
+        "right": "направо",
+        "end_draw": "закінчив",
+        "up": "підняв",
+        "assign": "записав",
+        "center": "вцентрячив",
+        "speed": "форсанув"
+    },
+    "prepositions": {
+        "to": ["в", "до"],
+        "from": "із",
+        "on": "на"
+    },
+    "condition_start": "базовано",
+    "condition_end": "опа чіназес",
+    "chapter_marker": "рофл:",
+    "repeat": "флексити",
+    "condition_words": {
+        "not": "нє",
+        "equals": "саме",
+        "greater": "більше",
+        "less": "менше"
+    },
+    "boolean": {
+        "yes": "ага",
+        "no": "нєа"
+    },
+    "time_units": {
+        "seconds": ["сек", "сєкунд", "сєкунду"],
+        "minutes": ["хв", "хвилинку", "хвильку"],
+        "hours": ["год", "годинку", "годин"]
+    }
+}
+
+
+keywords = keywords_default
 
 chapters = {}
 variables_memory = {}
@@ -233,6 +297,9 @@ def process_line(line, variables_memory, last_variable):
             keywords["actions"]["say"][1]: lambda: print(" ".join(words[2:])),
             keywords["actions"]["remember"]: lambda: find_closest_variable(" ".join(words[2:]), variables_memory),
             keywords["actions"]["assign"]: lambda: handle_assign(words, variables_memory),
+            keywords["actions"]["cos"]: lambda: handle_cosine(words, variables_memory, last_variable),
+            keywords["actions"]["sin"]: lambda: handle_sine(words, variables_memory, last_variable),
+            keywords["actions"]["tan"]: lambda: handle_tangent(words, variables_memory, last_variable),
         }
 
         if action in action_map:
@@ -294,6 +361,44 @@ def handle_addition(words, variables_memory, last_variable):
             num = variables_memory[find_closest_variable(var_name_to_add, variables_memory)]
         variables_memory[resolved_var] += num
 
+def handle_cosine(words, variables_memory, last_variable):
+    if words[-2].lower() in keywords["prepositions"]["on"]:
+        var_name = last_variable
+        resolved_var = find_closest_variable(var_name, variables_memory)
+        if resolved_var is None:
+            raise ValueError("Змінна не знайдена для косинуса.")
+        angle = ukr_numbers.parse_integer(words[2:-2])
+        if angle is None:
+            var_name_to_cos = " ".join(words[2:-2])
+            angle = variables_memory[find_closest_variable(var_name_to_cos, variables_memory)]
+        variables_memory[resolved_var] = math.cos(math.radians(angle))
+def handle_sine(words, variables_memory, last_variable):
+    if words[-2].lower() in keywords["prepositions"]["on"]:
+        var_name = last_variable
+        resolved_var = find_closest_variable(var_name, variables_memory)
+        if resolved_var is None:
+            raise ValueError("Змінна не знайдена для синуса.")
+        angle = ukr_numbers.parse_integer(words[2:-2])
+        if angle is None:
+            var_name_to_sin = " ".join(words[2:-2])
+            angle = variables_memory[find_closest_variable(var_name_to_sin, variables_memory)]
+        variables_memory[resolved_var] = math.sin(math.radians(angle))
+def handle_tangent(words, variables_memory, last_variable):
+    if words[-2].lower() in keywords["prepositions"]["on"]:
+        var_name = last_variable
+        resolved_var = find_closest_variable(var_name, variables_memory)
+        if resolved_var is None:
+            raise ValueError("Змінна не знайдена для тангенса.")
+        angle = ukr_numbers.parse_integer(words[2:-2])
+        if angle is None:
+            var_name_to_tan = " ".join(words[2:-2])
+            angle = variables_memory[find_closest_variable(var_name_to_tan, variables_memory)]
+        variables_memory[resolved_var] = math.tan(math.radians(angle))
+    # Приклад використання:
+    # handle_tangent(["петя", "тангенс", "на", "45"], variables_memory, last_variable)
+    
+
+
 def handle_subtraction(words, variables_memory, last_variable):
     if words[-2].lower() in keywords["prepositions"]["from"]:
         var_name = last_variable
@@ -343,6 +448,8 @@ if __name__ == "__main__":
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             code = f.read()
+        if filepath.endswith('.мспетрик'):
+            keywords = keywords_mcpetya
         result = interpret_code(code)
     except FileNotFoundError:
         print(f"- Файл '{filepath}' не знайдено.")
